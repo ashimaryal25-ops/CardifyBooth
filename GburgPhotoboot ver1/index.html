@@ -1,0 +1,193 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Gburgphotobooth</title>
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body>
+    <header>
+      <div class="logo">Gburgphotobooth</div>
+      <nav>
+        <a href="#">Homepage</a>
+        <a href="#">Questions</a>
+      </nav>
+    </header>
+
+    <main class="boothcontianer">
+      <section id="welcomescreen" class="screen active">
+        <h1>Welcome to the Gburgphotobooth</h1>
+        <p>
+          A photobooth to take home a memory of Gburg with you, with fun frame,
+          stickers and backgrounds.
+        </p>
+        <button id="startbtn" class="primarybtn">START TAKING MEMORIES</button>
+
+        <div class="layout-selector">
+          <h3>Choose Your Layout Style:</h3>
+          <div class="layout-options">
+            <label class="layout-card">
+              <input type="radio" name="strip-layout" value="2" checked />
+              <div class="layout-preview layout-2"></div>
+              <span>2 Pictures</span>
+            </label>
+            <label class="layout-card">
+              <input type="radio" name="strip-layout" value="3" />
+              <div class="layout-preview layout-3"></div>
+              <span>3 Pictures</span>
+            </label>
+            <label class="layout-card">
+              <input type="radio" name="strip-layout" value="4" />
+              <div class="layout-preview layout-4"></div>
+              <span>4 Pictures</span>
+            </label>
+          </div>
+        </div>
+      </section>
+
+      <section id="capscreen" class="screen">
+        <div class="workspace"></div>
+        <div class="camerabox">
+          <video id="webcam" autoplay playsinline muted></video>
+          <div id="countdown" class="hidden">5</div>
+          <div id="flash" class="flasheffect hidden"></div>
+        </div>
+
+        <div class="side-preview">
+          <h3>Captures</h3>
+          <div class="thumbnail-slots">
+            <div class="slot" id="slot0">1</div>
+            <div class="slot" id="slot1">2</div>
+            <div class="slot" id="slot2">3</div>
+            <div class="slot" id="slot3">4</div>
+          </div>
+          <button id="triggercapturebtn" class="actionbtn">
+            Capture Strip (4 Photos)
+          </button>
+        </div>
+      </section>
+
+      <section id="resultscreen" class="screen">
+        <div class="editorworkspace">
+          <div class="controls">
+            <h3>Customize your own strip</h3>
+
+            <label>Filter effect:</label>
+            <select id="filter-select">
+              <option value="none">Normal</option>
+              <option value="grayscale">Classic B&W</option>
+              <option value="sepia">Vintage Sepia</option>
+              <option value="high-contrast">High Contrast</option>
+            </select>
+
+            <label>Frame Color:</label>
+            <div class="colorpicker">
+              <button
+                class="colordot active"
+                data-color="#ffffff"
+                style="background: #fff; border: 1px solid #ccc"
+              ></button>
+              <button
+                class="colordot"
+                data-color="#800020"
+                style="background: #800020"
+              ></button>
+              <button
+                class="colordot"
+                data-color="#4B0082"
+                style="background: #4b0082"
+              ></button>
+              <button
+                class="colordot"
+                data-color="#111111"
+                style="background: #111"
+              ></button>
+            </div>
+
+            <section id="decorationscree" class="screen">
+              <h2>Decorate Your Photo Strip!</h2>
+              <p>
+                Drag your favorite stickers from the tray and drop them onto
+                your photo strip.
+              </p>
+
+              <div class="decorationworkspace">
+                <div class="stickertray">
+                  <h3>Stickers</h3>
+                  <div class="stickergrid">
+                    <img
+                      src="https://openmoji.org/data/color/svg/2b50.svg"
+                      class="sticker"
+                      draggable="true"
+                      id="cookie"
+                      alt="cookie"
+                    />
+                    <img
+                      src="https://openmoji.org/data/color/svg/1f496.svg"
+                      class="sticker"
+                      draggable="true"
+                      id="musslib"
+                      alt="musslib"
+                    />
+                    <img
+                      src="https://openmoji.org/data/color/svg/1f338.svg"
+                      class="sticker"
+                      draggable="true"
+                      id="mascot"
+                      alt="mascot"
+                    />
+                    <img
+                      src="https://openmoji.org/data/color/svg/1f525.svg"
+                      class="sticker"
+                      draggable="true"
+                      id="fireplace"
+                      alt="fireplace"
+                    />
+                    <img
+                      src="https://openmoji.org/data/color/svg/1f380.svg"
+                      class="sticker"
+                      draggable="true"
+                      id="heart"
+                      alt="heart"
+                    />
+                    <img
+                      src="https://openmoji.org/data/color/svg/1f436.svg"
+                      class="sticker"
+                      draggable="true"
+                      id="dog"
+                      alt="dog"
+                    />
+                  </div>
+
+                  <div class="decoration-actions">
+                    <button id="save-decorated-btn" class="primary-btn">
+                      Finish & Download
+                    </button>
+                  </div>
+                </div>
+
+                <div id="drop-zone" class="stripdropcontainer">
+                  <img id="striptodecorate" alt="Your Photo Strip" />
+                </div>
+              </div>
+            </section>
+
+            <div class="action-row">
+              <button id="downloadbtn" class="primarybtn">
+                Download Strip
+              </button>
+              <button id="printing" class="secondarybtn">Print pictures</button>
+            </div>
+          </div>
+
+          <div class="strippreviewwrapper">
+            <canvas id="stripcanvas"></canvas>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <script src="script.js"></script>
+  </body>
+</html>
