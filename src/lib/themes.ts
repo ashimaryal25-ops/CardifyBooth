@@ -1,0 +1,40 @@
+export const gettysburgTheme = {
+  id: "gettysburg",
+  name: "Gettysburg Edition",
+  eyebrow: "Campus Pack 001",
+  titles: [
+    "Campus Legend",
+    "Midnight Builder",
+    "Battlefield Scholar",
+    "Servo Survivor",
+    "Bullet Builder",
+    "Club Connector",
+    "Library Dweller",
+    "First-Year Explorer",
+    "Deadline Sprinter",
+    "Event Architect",
+  ],
+  stats: [
+    "Creativity",
+    "Leadership",
+    "Focus",
+    "Campus Energy",
+    "Chaos Control",
+    "Execution",
+  ],
+  traits: [
+    "Builder",
+    "Leader",
+    "Creative",
+    "Clutch",
+    "Technical",
+    "Social",
+    "Focused",
+    "Chaotic Good",
+    "Event Brain",
+    "Problem Solver",
+  ],
+  rarities: ["Common", "Rare", "Epic", "Legendary", "Campus Myth"],
+} as const;
+
+export const themePacks = [gettysburgTheme] as const;
