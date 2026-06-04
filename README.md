@@ -1,36 +1,89 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# CardifyBooth
 
-## Getting Started
+CardifyBooth is a photo booth web app for creating Gettysburg-themed collage and trading-card printouts. The current build focuses on the trading-card flow: upload a photo, enter a name and traits, generate a card identity, save the final card PNG, and make the card available through a QR-friendly saved-card page.
 
-First, run the development server:
+## Current Features
+
+- Mode chooser for `Card Booth` and a placeholder `Photo Collage` flow
+- Upload-only card setup with preview and sample-photo fallback
+- Gettysburg-themed trading-card renderer
+- Structured card generation with Zod validation
+- Local fallback generation when no AI key is configured
+- Supabase Postgres persistence for generated card metadata
+- Supabase Storage upload for print-ready generated card PNGs
+- QR target route at `/cards/[id]`
+- Saved-card page that displays the stored card image and card details
+- Print button placeholder for the future physical print queue
+
+## Stack
+
+- Next.js App Router
+- React and TypeScript
+- Tailwind CSS
+- Supabase Postgres
+- Supabase Storage
+- Zod
+- `html-to-image`
+- `qrcode`
+
+## Local Setup
 
 ```bash
+npm install
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open [http://localhost:3000](http://localhost:3000).
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+Create `.env.local` from `.env.example`:
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+```env
+OPENAI_API_KEY=
+OPENAI_MODEL=gpt-5-mini
+NEXT_PUBLIC_SUPABASE_URL=
+NEXT_PUBLIC_SUPABASE_ANON_KEY=
+SUPABASE_SERVICE_ROLE_KEY=
+```
 
-## Learn More
+The app still works without `OPENAI_API_KEY`; it uses the local fallback generator. Supabase values are required for database rows, saved PNGs, and QR card pages.
 
-To learn more about Next.js, take a look at the following resources:
+## Database
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+Supabase uses two tables:
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+- `events`: optional grouping for booth events
+- `card_generations`: one row per generated card
 
-## Deploy on Vercel
+Generated card rows store searchable metadata such as name, title, rarity, traits, stats, generation source, token estimates, print status, and the stored PNG path.
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+The final card image is stored in Supabase Storage:
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+- Bucket: `card-prints`
+- Path format: `card-prints/{cardId}.png`
+
+## Card Flow
+
+```txt
+Card Booth
+-> upload or sample photo
+-> enter name, traits, known-for text
+-> generate card identity
+-> save metadata row in Supabase
+-> render final card PNG
+-> upload PNG to Supabase Storage
+-> QR points to /cards/{cardId}
+```
+
+## Important Files
+
+- `src/components/BoothApp.tsx`: main kiosk flow
+- `src/components/ImageUpload.tsx`: upload and sample image input
+- `src/components/CardForm.tsx`: card form inputs
+- `src/components/CardPreview.tsx`: card template
+- `src/components/CardReveal.tsx`: final reveal, print placeholder, PNG autosave
+- `src/app/api/generate-card/route.ts`: card generation API
+- `src/app/api/cards/[id]/print-image/route.ts`: saved PNG upload API
+- `src/app/cards/[id]/page.tsx`: QR destination page
+- `src/lib/card-generation.ts`: prompt, AI call, validation, fallback
+- `src/lib/card-records.ts`: Supabase row insert
+- `src/lib/supabase-server.ts`: server-side Supabase client
