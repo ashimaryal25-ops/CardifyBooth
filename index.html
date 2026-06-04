@@ -1,0 +1,125 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Gburg Photo Booth</title>
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body>
+    <div class="booth-container">
+      <section id="screen-welcome" class="booth-screen active">
+        <h1>GBURG PHOTO BOOTH</h1>
+        <p>Welcome to GBURG Photobooth</p>
+        <button id="btn-start" class="btn-primary">START</button>
+      </section>
+
+      <section id="screen-layout" class="booth-screen">
+        <button class="back-btn">← Back</button>
+        <h2>CHOOSE YOUR LAYOUT</h2>
+        <div class="options-grid">
+          <button class="layout-opt" data-slots="2">2 Photos</button>
+          <button class="layout-opt" data-slots="3">Classic 3</button>
+          <button class="layout-opt" data-slots="4">4 Photos</button>
+        </div>
+      </section>
+
+      <section id="screen-capture" class="booth-screen">
+        <button class="back-btn">← Back</button>
+        <div id="countdown-display">Ready</div>
+
+        <div class="camera-wrapper">
+          <video id="webcam" autoplay playsinline></video>
+        </div>
+
+        <button id="btn-shoot" class="btn-primary">Take Pictures</button>
+      </section>
+
+      <section id="screen-customize" class="booth-screen">
+        <button class="back-btn">← Back</button>
+        <h2>CUSTOMIZE YOUR STRIP</h2>
+
+        <div class="customize-workspace">
+          <div id="photostrip-preview" class="strip-theme-default">
+            <div id="strip-slots-container"></div>
+          </div>
+
+          <div class="customizer-panel">
+            <h3>Choose Color / Preset</h3>
+            <div class="preset-colors">
+              <button
+                class="color-opt"
+                data-color="#ffffff"
+                style="background: #fff; border: 1px solid #000"
+              ></button>
+              <button
+                class="color-opt"
+                data-color="#f8d7da"
+                style="background: #f8d7da"
+              ></button>
+              <button
+                class="color-opt"
+                data-color="#d1ecf1"
+                style="background: #d1ecf1"
+              ></button>
+              <button
+                class="color-opt"
+                data-color="#d4edda"
+                style="background: #d4edda"
+              ></button>
+              <button
+                class="color-opt"
+                data-preset="retro-strip"
+                style="background: linear-gradient(orange, pink)"
+              ></button>
+            </div>
+
+            <button id="btn-toggle-stickers" class="btn-secondary">
+              Open Stickers Window
+            </button>
+          </div>
+        </div>
+
+        <div id="sticker-drawer" class="hidden">
+          <div class="drawer-header">
+            <h4>Add Stickers</h4>
+            =
+            <button id="btn-close-stickers">✕ Close</button>
+          </div>
+          <div class="sticker-options">
+            <span class="sticker-item" data-emoji="❤️">❤️</span>
+            <span class="sticker-item" data-emoji="✨">✨</span>
+            <span class="sticker-item" data-emoji="😎">😎</span>
+            <span class="sticker-item" data-emoji="⚡">⚡</span>
+            <span class="sticker-item" data-emoji="🌸">🌸</span>
+          </div>
+          <p class="instruction">Click a sticker to put it onto the strip.</p>
+        </div>
+
+        <button id="btn-finish" class="btn-primary">Next</button>
+      </section>
+
+      <section id="screen-final" class="booth-screen">
+        <button class="back-btn">← Back</button>
+        <h2>YOUR PHOTOSTRIP</h2>
+        <div id="final-output-container"></div>
+
+        <div class="action-buttons">
+          <div class="qr-placeholder">
+            <div class="qr-box">QR Code</div>
+            <span>Scan to Download</span>
+          </div>
+          <button id="btn-download" class="btn-primary">
+            Download Strip Only
+          </button>
+        </div>
+      </section>
+    </div>
+
+    <canvas id="download-compiler-canvas" style="display: none"></canvas>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+
+    <script src="script.js"></script>
+  </body>
+</html>
