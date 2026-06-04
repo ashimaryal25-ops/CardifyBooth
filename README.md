@@ -13,6 +13,7 @@ CardifyBooth is a photo booth web app for creating Gettysburg-themed collage and
 - Supabase Storage upload for print-ready generated card PNGs
 - QR target route at `/cards/[id]`
 - Saved-card page that displays the stored card image and card details
+- Password-protected admin dashboard at `/admin`
 - Print button placeholder for the future physical print queue
 
 ## Stack
@@ -43,9 +44,12 @@ OPENAI_MODEL=gpt-5-mini
 NEXT_PUBLIC_SUPABASE_URL=
 NEXT_PUBLIC_SUPABASE_ANON_KEY=
 SUPABASE_SERVICE_ROLE_KEY=
+ADMIN_PASSWORD=
+ADMIN_SESSION_SECRET=
 ```
 
 The app still works without `OPENAI_API_KEY`; it uses the local fallback generator. Supabase values are required for database rows, saved PNGs, and QR card pages.
+`ADMIN_PASSWORD` protects `/admin`. `ADMIN_SESSION_SECRET` signs the admin cookie and can be any long random string.
 
 ## Database
 
@@ -74,6 +78,18 @@ Card Booth
 -> QR points to /cards/{cardId}
 ```
 
+## Admin Flow
+
+```txt
+/admin
+-> redirect to /admin/login when not signed in
+-> password creates an HttpOnly admin cookie
+-> dashboard reads card_generations from Supabase
+-> metrics and recent card rows render server-side
+```
+
+The first admin version is read-only. It shows total generated cards, cards generated today, saved PNG count, print-requested count, and the latest 50 card generations.
+
 ## Important Files
 
 - `src/components/BoothApp.tsx`: main kiosk flow
@@ -84,6 +100,10 @@ Card Booth
 - `src/app/api/generate-card/route.ts`: card generation API
 - `src/app/api/cards/[id]/print-image/route.ts`: saved PNG upload API
 - `src/app/cards/[id]/page.tsx`: QR destination page
+- `src/app/admin/page.tsx`: admin dashboard
+- `src/app/admin/login/page.tsx`: admin password login
+- `src/lib/admin-auth.ts`: admin cookie/session helpers
+- `src/lib/admin-cards.ts`: Supabase queries for admin metrics
 - `src/lib/card-generation.ts`: prompt, AI call, validation, fallback
 - `src/lib/card-records.ts`: Supabase row insert
 - `src/lib/supabase-server.ts`: server-side Supabase client
