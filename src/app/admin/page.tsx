@@ -77,10 +77,6 @@ function formatNumber(value: number) {
   return new Intl.NumberFormat("en").format(value);
 }
 
-function tokenTotal(card: AdminCardRow) {
-  return (card.estimated_input_tokens ?? 0) + (card.estimated_output_tokens ?? 0);
-}
-
 function ViewIcon({ view }: { view: AdminView }) {
   const className = "h-4 w-4";
 
@@ -292,28 +288,30 @@ function PngStatus({ card }: { card: AdminCardRow }) {
 
 function PrintStatusForm({
   cardId,
-  status,
-  label,
-  primary = false,
+  currentStatus,
 }: {
   cardId: string;
-  status: string;
-  label: string;
-  primary?: boolean;
+  currentStatus: string;
 }) {
   return (
-    <form action={updatePrintStatusAction}>
+    <form action={updatePrintStatusAction} className="flex items-center gap-1">
       <input type="hidden" name="cardId" value={cardId} />
-      <input type="hidden" name="status" value={status} />
+      <select
+        name="status"
+        defaultValue={currentStatus}
+        className="h-8 rounded-[6px] border border-[#cfd6e2] bg-white px-2 text-xs font-semibold text-[#334155]"
+      >
+        {printStatusValues.map((status) => (
+          <option key={status} value={status}>
+            {status}
+          </option>
+        ))}
+      </select>
       <button
         type="submit"
-        className={`rounded-[6px] px-2.5 py-1.5 text-xs font-semibold ${
-          primary
-            ? "bg-[#0f172a] text-white hover:bg-[#1e293b]"
-            : "border border-[#cfd6e2] bg-white text-[#334155] hover:bg-[#f8fafc]"
-        }`}
+        className="h-8 rounded-[6px] bg-[#0f172a] px-2.5 text-xs font-semibold text-white hover:bg-[#1e293b]"
       >
-        {label}
+        Update
       </button>
     </form>
   );
@@ -323,39 +321,35 @@ function RowActions({ card, mode }: { card: AdminCardRow; mode: AdminView }) {
   const pngUrl = getPublicCardUrl(card.card_png_path);
 
   return (
-    <div className="flex flex-wrap gap-2">
-      <Link
-        href={`/admin/cards/${card.id}`}
-        className="rounded-[6px] border border-[#cfd6e2] bg-white px-2.5 py-1.5 text-xs font-semibold text-[#334155] hover:bg-[#f8fafc]"
-      >
-        Details
-      </Link>
-      <Link
-        href={`/cards/${card.id}`}
-        className="rounded-[6px] border border-[#cfd6e2] bg-white px-2.5 py-1.5 text-xs font-semibold text-[#334155] hover:bg-[#f8fafc]"
-      >
-        Public
-      </Link>
-      {pngUrl && (
-        <a
-          href={pngUrl}
-          target="_blank"
-          rel="noreferrer"
+    <div className="grid gap-2">
+      <div className="flex flex-wrap gap-2">
+        <Link
+          href={`/admin/cards/${card.id}`}
           className="rounded-[6px] border border-[#cfd6e2] bg-white px-2.5 py-1.5 text-xs font-semibold text-[#334155] hover:bg-[#f8fafc]"
         >
-          PNG
-        </a>
+          Details
+        </Link>
+        <Link
+          href={`/cards/${card.id}`}
+          className="rounded-[6px] border border-[#cfd6e2] bg-white px-2.5 py-1.5 text-xs font-semibold text-[#334155] hover:bg-[#f8fafc]"
+        >
+          Public
+        </Link>
+        {pngUrl && (
+          <a
+            href={pngUrl}
+            target="_blank"
+            rel="noreferrer"
+            className="rounded-[6px] border border-[#cfd6e2] bg-white px-2.5 py-1.5 text-xs font-semibold text-[#334155] hover:bg-[#f8fafc]"
+          >
+            PNG
+          </a>
+        )}
+        <DeleteCardButton cardId={card.id} action={deleteCardGenerationAction} compact />
+      </div>
+      {(mode === "records" || mode === "print") && (
+        <PrintStatusForm cardId={card.id} currentStatus={card.print_status} />
       )}
-      {mode === "print" && card.print_status !== "printed" && (
-        <PrintStatusForm cardId={card.id} status="printed" label="Mark printed" primary />
-      )}
-      {mode === "records" && card.print_status !== "requested" && (
-        <PrintStatusForm cardId={card.id} status="requested" label="Request print" />
-      )}
-      {mode === "records" && card.print_status !== "not_requested" && (
-        <PrintStatusForm cardId={card.id} status="not_requested" label="Reset" />
-      )}
-      <DeleteCardButton cardId={card.id} action={deleteCardGenerationAction} compact />
     </div>
   );
 }
@@ -387,7 +381,6 @@ function WorkTable({
               <th className="whitespace-nowrap px-4 py-3">Card</th>
               <th className="whitespace-nowrap px-4 py-3">Output</th>
               <th className="whitespace-nowrap px-4 py-3">Print</th>
-              <th className="whitespace-nowrap px-4 py-3">Context</th>
               <th className="min-w-72 px-4 py-3">Actions</th>
             </tr>
           </thead>
@@ -413,11 +406,6 @@ function WorkTable({
                 </td>
                 <td className="whitespace-nowrap px-4 py-3">
                   <StatusPill tone={printTone(card.print_status)}>{card.print_status}</StatusPill>
-                </td>
-                <td className="min-w-44 px-4 py-3 text-xs font-medium leading-5 text-[#64748b]">
-                  <p>{card.traits?.length ? card.traits.join(", ") : "No traits"}</p>
-                  <p className="mt-1">{formatNumber(tokenTotal(card))} est. tokens</p>
-                  <p className="mt-1">{formatDuration(card.duration_ms)}</p>
                 </td>
                 <td className="px-4 py-3">
                   <RowActions card={card} mode={mode} />
