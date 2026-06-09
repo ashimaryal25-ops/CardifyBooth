@@ -319,19 +319,28 @@ function PrintStatusForm({
 
 function RowActions({ card, mode }: { card: AdminCardRow; mode: AdminView }) {
   const pngUrl = getPublicCardUrl(card.card_png_path);
+  const compact = mode === "control" || mode === "issues";
 
   return (
-    <div className="grid gap-2">
-      <div className="flex flex-wrap gap-2">
+    <div className={compact ? "flex flex-wrap items-center gap-x-3 gap-y-1" : "grid gap-2"}>
+      <div className={compact ? "flex flex-wrap items-center gap-x-3 gap-y-1" : "flex flex-wrap gap-2"}>
         <Link
           href={`/admin/cards/${card.id}`}
-          className="rounded-[6px] border border-[#cfd6e2] bg-white px-2.5 py-1.5 text-xs font-semibold text-[#334155] hover:bg-[#f8fafc]"
+          className={
+            compact
+              ? "text-xs font-semibold text-[#1d4ed8] underline underline-offset-4"
+              : "rounded-[6px] border border-[#cfd6e2] bg-white px-2.5 py-1.5 text-xs font-semibold text-[#334155] hover:bg-[#f8fafc]"
+          }
         >
           Details
         </Link>
         <Link
           href={`/cards/${card.id}`}
-          className="rounded-[6px] border border-[#cfd6e2] bg-white px-2.5 py-1.5 text-xs font-semibold text-[#334155] hover:bg-[#f8fafc]"
+          className={
+            compact
+              ? "text-xs font-semibold text-[#1d4ed8] underline underline-offset-4"
+              : "rounded-[6px] border border-[#cfd6e2] bg-white px-2.5 py-1.5 text-xs font-semibold text-[#334155] hover:bg-[#f8fafc]"
+          }
         >
           Public
         </Link>
@@ -340,15 +349,31 @@ function RowActions({ card, mode }: { card: AdminCardRow; mode: AdminView }) {
             href={pngUrl}
             target="_blank"
             rel="noreferrer"
-            className="rounded-[6px] border border-[#cfd6e2] bg-white px-2.5 py-1.5 text-xs font-semibold text-[#334155] hover:bg-[#f8fafc]"
+            className={
+              compact
+                ? "text-xs font-semibold text-[#1d4ed8] underline underline-offset-4"
+                : "rounded-[6px] border border-[#cfd6e2] bg-white px-2.5 py-1.5 text-xs font-semibold text-[#334155] hover:bg-[#f8fafc]"
+            }
           >
             PNG
           </a>
         )}
-        <DeleteCardButton cardId={card.id} action={deleteCardGenerationAction} compact />
+        {!compact && <DeleteCardButton cardId={card.id} action={deleteCardGenerationAction} compact />}
       </div>
-      {(mode === "records" || mode === "print") && (
+      {mode === "records" && (
         <PrintStatusForm cardId={card.id} currentStatus={card.print_status} />
+      )}
+      {mode === "print" && card.print_status !== "printed" && (
+        <form action={updatePrintStatusAction}>
+          <input type="hidden" name="cardId" value={card.id} />
+          <input type="hidden" name="status" value="printed" />
+          <button
+            type="submit"
+            className="h-8 rounded-[6px] bg-[#0f172a] px-3 text-xs font-semibold text-white hover:bg-[#1e293b]"
+          >
+            Mark printed
+          </button>
+        </form>
       )}
     </div>
   );
@@ -507,7 +532,7 @@ function ControlCenter({
                     Print requested · {card.card_png_path ? "PNG ready" : "PNG missing"}
                   </p>
                 </div>
-                <RowActions card={card} mode="print" />
+                <RowActions card={card} mode="control" />
               </div>
             ))}
             {issues.slice(0, 3).map((card) => (
