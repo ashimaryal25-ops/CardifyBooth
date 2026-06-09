@@ -69,6 +69,7 @@ export interface AdminDashboardData {
   metrics: AdminMetrics;
   recentCards: AdminCardRow[];
   printQueue: AdminCardRow[];
+  storageIssues: AdminCardRow[];
   rarityOptions: string[];
   sourceOptions: string[];
   lastRefreshed: string;
@@ -145,7 +146,7 @@ function asDateRange(value: string): AdminDateRange {
     return value;
   }
 
-  return "7d";
+  return "all";
 }
 
 function asPngFilter(value: string): AdminPngFilter {
@@ -359,6 +360,7 @@ export async function getAdminDashboardData(filters: AdminFilters): Promise<Admi
     usageMetrics,
     recentCardsResult,
     printQueueResult,
+    storageIssuesResult,
     rarityOptions,
     sourceOptions,
   ] = await Promise.all([
@@ -377,6 +379,12 @@ export async function getAdminDashboardData(filters: AdminFilters): Promise<Admi
       .eq("print_status", "requested")
       .order("created_at", { ascending: true })
       .limit(20),
+    supabase
+      .from("card_generations")
+      .select(cardSelect)
+      .is("card_png_path", null)
+      .order("created_at", { ascending: false })
+      .limit(20),
     getDistinctOptions("rarity"),
     getDistinctOptions("generation_source"),
   ]);
@@ -387,6 +395,10 @@ export async function getAdminDashboardData(filters: AdminFilters): Promise<Admi
 
   if (printQueueResult.error) {
     throw new Error(`Could not load print queue: ${printQueueResult.error.message}`);
+  }
+
+  if (storageIssuesResult.error) {
+    throw new Error(`Could not load storage issues: ${storageIssuesResult.error.message}`);
   }
 
   return {
@@ -404,6 +416,7 @@ export async function getAdminDashboardData(filters: AdminFilters): Promise<Admi
     },
     recentCards: (recentCardsResult.data ?? []) as unknown as AdminCardRow[],
     printQueue: (printQueueResult.data ?? []) as unknown as AdminCardRow[],
+    storageIssues: (storageIssuesResult.data ?? []) as unknown as AdminCardRow[],
     rarityOptions,
     sourceOptions,
     lastRefreshed: new Date().toISOString(),
