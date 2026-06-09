@@ -13,7 +13,9 @@ CardifyBooth is a photo booth web app for creating Gettysburg-themed collage and
 - Supabase Storage upload for print-ready generated card PNGs
 - QR target route at `/cards/[id]`
 - Saved-card page that displays the stored card image and card details
-- Password-protected admin dashboard at `/admin`
+- Password-protected admin operations dashboard at `/admin`
+- Admin detail pages at `/admin/cards/[id]`
+- Admin print-status actions for `not_requested`, `requested`, and `printed`
 - Print button placeholder for the future physical print queue
 
 ## Stack
@@ -89,6 +91,32 @@ Card Booth
 ```
 
 The first admin version is read-only. It shows total generated cards, cards generated today, saved PNG count, print-requested count, and the latest 50 card generations.
+The upgraded admin dashboard includes filters, generation metrics, print queue monitoring, card detail pages, PNG links, print-status updates, and delete cleanup for test/bad cards.
+
+## Admin Dashboard
+
+The protected admin system uses `ADMIN_PASSWORD` and an HttpOnly session cookie. Admin-only mutations run server-side so `SUPABASE_SERVICE_ROLE_KEY` is never exposed to the browser.
+
+Dashboard features:
+
+- Total, today, and weekly generation metrics
+- Saved/missing PNG counts
+- Print requested and printed counts
+- Estimated token usage and average generation duration
+- Search by display name or card title
+- Filters for rarity, print status, PNG status, source, and date range
+- Recent card generations table
+- Print queue section for cards marked `requested`
+- Detail page for each generated card
+- PNG/public-card links
+- Server-side print status updates
+- Delete action that removes both the database row and stored PNG when present
+
+Print status workflow:
+
+```txt
+not_requested -> requested -> printed
+```
 
 ## Important Files
 
@@ -102,6 +130,8 @@ The first admin version is read-only. It shows total generated cards, cards gene
 - `src/app/cards/[id]/page.tsx`: QR destination page
 - `src/app/admin/page.tsx`: admin dashboard
 - `src/app/admin/login/page.tsx`: admin password login
+- `src/app/admin/cards/[id]/page.tsx`: admin card detail page
+- `src/app/admin/actions.ts`: protected admin server actions
 - `src/lib/admin-auth.ts`: admin cookie/session helpers
 - `src/lib/admin-cards.ts`: Supabase queries for admin metrics
 - `src/lib/card-generation.ts`: prompt, AI call, validation, fallback
