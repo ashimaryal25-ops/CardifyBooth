@@ -1,12 +1,13 @@
 import { cardSchema, type CardIdentity, type CardRequest } from "@/lib/card-schema";
+import { gettysburgTheme } from "@/lib/themes";
 
 const titles = [
-  "The Midnight Builder",
   "The Campus Catalyst",
-  "The Deadline Sprinter",
-  "The Battlefield Scholar",
-  "The Event Architect",
-  "The Servo Survivor",
+  "The Gettysburg Spark",
+  "The First-Year Force",
+  "The Campus Signal",
+  "The Bullet Blueprint",
+  "The Servo Scholar",
 ] as const;
 
 const abilities = [
@@ -18,42 +19,74 @@ const abilities = [
   "Campus Signal",
 ] as const;
 
-const rarities = ["Rare", "Epic", "Legendary", "Campus Myth"] as const;
-
 function score(seed: string, offset: number) {
   const total = [...seed].reduce((sum, char, index) => {
     return sum + char.charCodeAt(0) * (index + 3 + offset);
   }, 0);
 
-  return 68 + (total % 29);
+  return 60 + (total % 40);
+}
+
+function pickFallbackTraits(seed: string) {
+  return [...gettysburgTheme.traits]
+    .map((trait, index) => ({
+      trait,
+      rank: score(`${seed}-${trait}`, index),
+    }))
+    .sort((a, b) => b.rank - a.rank)
+    .slice(0, 3)
+    .map((item) => item.trait);
+}
+
+function rarityFromCampusPower(campusPower: number): CardIdentity["rarity"] {
+  if (campusPower >= 96) {
+    return "Campus Myth";
+  }
+
+  if (campusPower >= 89) {
+    return "Legendary";
+  }
+
+  if (campusPower >= 80) {
+    return "Epic";
+  }
+
+  if (campusPower >= 70) {
+    return "Rare";
+  }
+
+  return "Common";
 }
 
 export function createFallbackCard(input: CardRequest): CardIdentity {
-  const seed = `${input.name}-${input.traits.join("-")}-${input.knownFor ?? ""}`;
+  const seed = `${input.name}-${input.selfDescription}`;
   const title = titles[score(seed, 1) % titles.length];
   const ability = abilities[score(seed, 2) % abilities.length];
-  const rarity = rarities[score(seed, 3) % rarities.length];
-  const primaryTrait = input.traits[0] ?? "Builder";
-  const secondaryTrait = input.traits[1] ?? "Campus Energy";
+  const selectedTraits = pickFallbackTraits(seed);
+  const primaryTrait = selectedTraits[0];
+  const traitStats = Object.fromEntries(
+    selectedTraits.map((trait, index) => [trait, score(`${seed}-${trait}`, index + 4)]),
+  );
+  const campusPower = Math.round(
+    Object.values(traitStats).reduce((sum, value) => sum + value, 0) / selectedTraits.length,
+  );
+  const rarity = rarityFromCampusPower(campusPower);
+  const cleanedDescription = input.selfDescription.replace(/\.$/, "");
 
   const card = {
     displayName: input.name,
     cardTitle: title,
-    type: [primaryTrait, secondaryTrait],
+    type: selectedTraits,
     rarity,
     stats: {
-      Creativity: score(seed, 4),
-      Leadership: score(seed, 5),
-      Focus: score(seed, 6),
-      "Chaos Control": score(seed, 7),
+      ...traitStats,
+      "Campus Power": campusPower,
     },
     specialAbility: ability,
-    description:
-      input.knownFor && input.knownFor.length > 0
-        ? `Known for ${input.knownFor.replace(/\.$/, "")}.`
-        : `Known for turning ${primaryTrait.toLowerCase()} energy into campus-ready results.`,
-    tagline: "Build first. Explain cleanly.",
-    colorTheme: "burgundy-teal",
+    description: cleanedDescription
+      ? `Known for ${cleanedDescription}.`
+      : `Known for turning ${primaryTrait.toLowerCase()} energy into campus-ready results.`,
+    colorTheme: "gettysburg-college",
   };
 
   return cardSchema.parse(card);

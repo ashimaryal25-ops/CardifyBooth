@@ -7,7 +7,7 @@ import { useEffect, useRef, useState } from "react";
 import { downloadPng, makeCardFilename, renderCardAsPng } from "@/lib/export-card";
 import type { CardIdentity } from "@/lib/card-schema";
 import { CardPreview } from "@/components/CardPreview";
-import { uploadCardPrint } from "@/lib/upload-card-print";
+import { saveLocalCardPrint } from "@/lib/save-local-card";
 
 interface CardRevealProps {
   card: CardIdentity;
@@ -25,7 +25,7 @@ export function CardReveal({ card, cardId, photo, qrCode, onRestart }: CardRevea
   const [isExporting, setIsExporting] = useState(false);
   const [exportError, setExportError] = useState(false);
   const [exportedPng, setExportedPng] = useState<string | null>(null);
-  const [savedPrintUrl, setSavedPrintUrl] = useState<string | null>(null);
+  const [savedCardUrl, setSavedCardUrl] = useState<string | null>(null);
   const [saveStatus, setSaveStatus] = useState<SaveStatus>("idle");
   const filename = makeCardFilename(card.displayName);
 
@@ -51,8 +51,12 @@ export function CardReveal({ card, cardId, photo, qrCode, onRestart }: CardRevea
       try {
         const dataUrl = await renderCardAsPng(cardRef.current);
         setExportedPng(dataUrl);
-        const upload = await uploadCardPrint(cardId, dataUrl);
-        setSavedPrintUrl(upload.publicUrl);
+        const saved = await saveLocalCardPrint({
+          id: cardId,
+          card,
+          imageDataUrl: dataUrl,
+        });
+        setSavedCardUrl(saved.record.cardUrl);
         setSaveStatus("saved");
       } catch {
         setSaveStatus("error");
@@ -60,7 +64,7 @@ export function CardReveal({ card, cardId, photo, qrCode, onRestart }: CardRevea
     }, 500);
 
     return () => window.clearTimeout(timer);
-  }, [cardId]);
+  }, [card, cardId]);
 
   async function downloadCard() {
     if (!cardRef.current) {
@@ -82,22 +86,18 @@ export function CardReveal({ card, cardId, photo, qrCode, onRestart }: CardRevea
   }
 
   return (
-    <section className="grid gap-6 lg:grid-cols-[minmax(300px,420px)_1fr] lg:items-center">
-      <div ref={cardRef}>
+    <section className="grid gap-5 lg:grid-cols-[minmax(300px,420px)_1fr] lg:items-start">
+      <div ref={cardRef} className="justify-self-center lg:justify-self-start">
         <CardPreview card={card} photo={photo} qrCode={qrCode} />
       </div>
 
-      <div className="grid gap-5">
-        <div>
-          <p className="font-mono text-sm font-bold uppercase tracking-[0.2em] text-[#8a372c]">
-            Card generated
-          </p>
-          <h2 className="mt-2 text-4xl font-black tracking-normal text-[#171512] sm:text-5xl">
-            {card.cardTitle}
+      <div className="grid gap-4 rounded-[8px] border border-[var(--gc-black)]/14 bg-[#ffffff] p-4">
+        <div className="border-b border-[var(--gc-black)]/12 pb-3">
+          <h2 className="text-xl font-black tracking-normal text-[var(--gc-black)]">
+            {card.displayName} card generated
           </h2>
-          <p className="mt-3 max-w-xl text-lg font-medium leading-8 text-[#4e473d]">
-            This is ready for a demo: deterministic card layout, validated identity data,
-            uploaded photo input, QR marker, and saved print-ready PNG.
+          <p className="mt-1 text-sm leading-6 text-[var(--gc-gray)]">
+            Final PNG is saved locally for printing and QR access.
           </p>
         </div>
 
@@ -107,7 +107,7 @@ export function CardReveal({ card, cardId, photo, qrCode, onRestart }: CardRevea
             onClick={() => {
               window.alert("Print queue is coming next. The final card PNG is being saved for printing now.");
             }}
-            className="inline-flex h-12 items-center gap-2 rounded-[8px] bg-[#b2392b] px-5 font-bold text-white shadow-lg shadow-[#b2392b]/20 transition hover:bg-[#982f24]"
+            className="inline-flex h-10 items-center gap-2 rounded-[6px] bg-[var(--gc-orange)] px-3 text-sm font-bold text-white transition hover:bg-[#a43e00]"
           >
             <Printer size={18} />
             Print card
@@ -116,7 +116,7 @@ export function CardReveal({ card, cardId, photo, qrCode, onRestart }: CardRevea
             type="button"
             onClick={downloadCard}
             disabled={isExporting}
-            className="inline-flex h-12 items-center gap-2 rounded-[8px] bg-[#b2392b] px-5 font-bold text-white shadow-lg shadow-[#b2392b]/20 transition hover:bg-[#982f24] disabled:cursor-not-allowed disabled:opacity-50"
+            className="inline-flex h-10 items-center gap-2 rounded-[6px] border border-[var(--gc-orange)] bg-white px-3 text-sm font-bold text-[var(--gc-orange)] transition hover:bg-[#fff4ec] disabled:cursor-not-allowed disabled:opacity-50"
           >
             <Download size={18} />
             {isExporting ? "Preparing PNG" : "Download PNG"}
@@ -124,44 +124,54 @@ export function CardReveal({ card, cardId, photo, qrCode, onRestart }: CardRevea
           <button
             type="button"
             onClick={onRestart}
-            className="inline-flex h-12 items-center gap-2 rounded-[8px] border border-[#2a2925]/20 bg-white/70 px-5 font-bold text-[#2a2925] transition hover:bg-white"
+            className="inline-flex h-10 items-center gap-2 rounded-[6px] border border-[var(--gc-black)]/22 bg-white px-3 text-sm font-bold text-[var(--gc-black)] transition hover:bg-[var(--gc-alabaster)]"
           >
             <RotateCcw size={18} />
             New card
           </button>
         </div>
 
-        <div className="rounded-[8px] border border-[#2a2925]/10 bg-[#fffaf1]/70 p-3 text-sm font-bold text-[#5f574d]">
+        <div className="rounded-[6px] border border-[var(--gc-black)]/12 bg-white p-3 text-sm font-semibold text-[var(--gc-gray)]">
           {saveStatus === "idle" && "Preparing card print file."}
-          {saveStatus === "saving" && "Saving final card PNG to Supabase Storage..."}
-          {saveStatus === "saved" && "Final card PNG saved for admin gallery and future print queue."}
-          {saveStatus === "error" && "Card generated, but PNG storage failed. Try downloading as backup."}
+          {saveStatus === "saving" && "Saving final card PNG locally..."}
+          {saveStatus === "saved" && "Final card PNG saved locally for QR access and printing."}
+          {saveStatus === "error" && "Card generated, but local PNG storage failed. Try downloading as backup."}
         </div>
 
         {exportError && (
-          <p className="rounded-[8px] border border-[#b2392b]/30 bg-[#fff3ef] p-3 text-sm font-semibold text-[#8a372c]">
+          <p className="rounded-[6px] border border-[var(--gc-orange)]/30 bg-[#fff4ec] p-3 text-sm font-semibold text-[var(--gc-orange)]">
             PNG export hit a browser rendering issue. Try again after the card finishes loading.
           </p>
         )}
 
         {exportedPng && (
-          <div className="rounded-[8px] border border-[#185c54]/20 bg-[#effaf7] p-3">
-            <p className="text-sm font-bold text-[#185c54]">
+          <div className="rounded-[6px] border border-[var(--gc-blue)]/20 bg-[#f0f9ff] p-3">
+            <p className="text-sm font-bold text-[var(--gc-blue)]">
               PNG is ready: {filename}
             </p>
-            <a
-              href={savedPrintUrl ?? exportedPng}
-              download={filename}
-              target="_blank"
-              rel="noreferrer"
-              className="mt-2 inline-flex text-sm font-black text-[#8a372c] underline underline-offset-4"
-            >
-              Open or save PNG
-            </a>
+            <div className="mt-2 flex flex-wrap gap-3">
+              {savedCardUrl && (
+                <a
+                  href={savedCardUrl}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="inline-flex text-sm font-black text-[var(--gc-blue)] underline underline-offset-4"
+                >
+                  Open saved card page
+                </a>
+              )}
+              <a
+                href={exportedPng}
+                download={filename}
+                className="inline-flex text-sm font-black text-[var(--gc-orange)] underline underline-offset-4"
+              >
+                Download PNG
+              </a>
+            </div>
             <img
               src={exportedPng}
               alt="Exported card PNG preview"
-              className="mt-3 w-28 rounded-[6px] border border-[#185c54]/20"
+              className="mt-3 w-28 rounded-[6px] border border-[var(--gc-blue)]/20"
             />
           </div>
         )}

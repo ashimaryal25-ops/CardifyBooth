@@ -1,4 +1,5 @@
-import { cardSchema, type CardIdentity, type CardRequest } from "@/lib/card-schema";
+import { z } from "zod";
+import { cardSchema, raritySchema, type CardIdentity, type CardRequest } from "@/lib/card-schema";
 import { createFallbackCard } from "@/lib/fallback-card";
 import { gettysburgTheme } from "@/lib/themes";
 
@@ -18,39 +19,53 @@ const CARD_IDENTITY_JSON_SCHEMA = {
   type: "object",
   additionalProperties: false,
   required: [
-    "displayName",
     "cardTitle",
-    "type",
+    "traits",
+    "campusPower",
     "rarity",
-    "stats",
+    "knownFor",
     "specialAbility",
-    "description",
-    "tagline",
     "colorTheme",
   ],
   properties: {
-    displayName: { type: "string" },
     cardTitle: { type: "string" },
-    type: {
+    traits: {
       type: "array",
-      minItems: 1,
+      minItems: 3,
       maxItems: 3,
-      items: { type: "string" },
+      items: {
+        type: "object",
+        additionalProperties: false,
+        required: ["name", "score"],
+        properties: {
+          name: { type: "string", enum: gettysburgTheme.traits },
+          score: { type: "integer", minimum: 60, maximum: 99 },
+        },
+      },
     },
+    campusPower: { type: "integer", minimum: 60, maximum: 99 },
     rarity: {
       type: "string",
       enum: ["Common", "Rare", "Epic", "Legendary", "Campus Myth"],
     },
-    stats: {
-      type: "object",
-      additionalProperties: { type: "integer", minimum: 45, maximum: 99 },
-    },
+    knownFor: { type: "string" },
     specialAbility: { type: "string" },
-    description: { type: "string" },
-    tagline: { type: "string" },
     colorTheme: { type: "string" },
   },
 } as const;
+
+const aiCardContentSchema = z.object({
+  cardTitle: z.string().min(3).max(42),
+  traits: z.array(z.object({
+    name: z.enum(gettysburgTheme.traits),
+    score: z.number().int().min(60).max(99),
+  })).length(3),
+  campusPower: z.number().int().min(60).max(99),
+  rarity: raritySchema,
+  knownFor: z.string().min(8).max(140),
+  specialAbility: z.string().min(3).max(34),
+  colorTheme: z.string().min(3).max(24),
+});
 
 function estimateTokens(text: string) {
   return Math.ceil(text.length / 4);
@@ -60,33 +75,38 @@ function buildSystemPrompt() {
   return [
     "You generate collectible campus trading-card identities for CardifyBooth.",
     "Return strict JSON only. Do not include markdown, prose, comments, or code fences.",
-    "The app controls card layout, so you only generate the card identity/content.",
+    "The app controls card layout and display name, so you only generate the card identity/content.",
     "Use a playful but printable Gettysburg College campus tone.",
     "Avoid insults, sensitive personal attributes, stereotypes, and private information.",
+    `Allowed traits: ${gettysburgTheme.traits.join(", ")}.`,
     `Allowed rarities: ${gettysburgTheme.rarities.join(", ")}.`,
-    `Good title inspiration: ${gettysburgTheme.titles.join(", ")}.`,
-    `Good stat names: ${gettysburgTheme.stats.join(", ")}.`,
-    "Stats should be integers from 45 to 99. Include exactly four stats.",
-    "Description should be one sentence and start with 'Known for'.",
+    "Create an original Gettysburg College-themed card title. It may reference campus life, Bullet pride, first-year energy, clubs, making/building, classes, or student leadership, but do not copy a fixed title list.",
+    "Pick exactly three traits that best match the user's self-description.",
+    "Return traits as an array of exactly three objects with name and score.",
+    "Trait scores must be integers from 60 to 99 based on evidence in the sentence.",
+    "Use this score rubric: 60-69 weak/vague evidence, 70-79 moderate evidence, 80-88 strong evidence, 89-95 exceptional evidence, 96-99 extremely rare/mythic evidence.",
+    "Do not reward generic self-praise too highly. Concrete actions, difficulty, impact, and pressure should score higher than vague claims.",
+    "Campus Power should be the overall score, roughly the average of the three trait scores with small adjustment for sentence quality.",
+    "Use this rarity rubric: 60-69 Common, 70-79 Rare, 80-88 Epic, 89-95 Legendary, 96-99 Campus Myth.",
+    "Most normal cards should be Rare or Epic. Legendary should be uncommon. Campus Myth should be extremely rare.",
+    "knownFor should be one sentence fragment without the words 'Known for'.",
+    "Return exactly one JSON object for exactly one card.",
   ].join("\n");
 }
 
 function buildUserPrompt(input: CardRequest) {
   return JSON.stringify({
-    task: "Create one Gettysburg Edition CardifyBooth identity.",
+    task: "Create one Gettysburg College Edition CardifyBooth identity.",
     userInput: {
-      name: input.name,
-      traits: input.traits,
-      knownFor: input.knownFor || "campus energy and getting things done",
+      selfDescription: input.selfDescription,
       theme: input.theme,
     },
     outputRules: {
-      displayName: "Use the provided name or nickname exactly, with normal capitalization.",
       cardTitle: "Make it punchy, specific, and under 42 characters.",
-      type: "Use 1 to 3 short type labels based on traits.",
-      stats: "Exactly four stat fields. Pick from the theme stats when possible.",
+      traits: "Exactly three objects from the allowed trait list, each with a 60-99 score.",
+      campusPower: "Integer from 60 to 99.",
+      knownFor: "One concise phrase based on the self-description, without 'Known for'.",
       specialAbility: "Short ability name, not a sentence.",
-      tagline: "Short memorable line under 44 characters.",
     },
   });
 }
@@ -99,6 +119,30 @@ function extractOutputText(responseBody: unknown) {
     typeof responseBody.output_text === "string"
   ) {
     return responseBody.output_text;
+  }
+
+  if (
+    responseBody &&
+    typeof responseBody === "object" &&
+    "output" in responseBody &&
+    Array.isArray(responseBody.output)
+  ) {
+    for (const item of responseBody.output) {
+      if (!item || typeof item !== "object" || !("content" in item) || !Array.isArray(item.content)) {
+        continue;
+      }
+
+      for (const content of item.content) {
+        if (
+          content &&
+          typeof content === "object" &&
+          "text" in content &&
+          typeof content.text === "string"
+        ) {
+          return content.text;
+        }
+      }
+    }
   }
 
   return null;
@@ -130,6 +174,49 @@ function createFallbackResult(
     estimatedOutputTokens: estimateTokens(outputText),
     error,
   };
+}
+
+function rarityFromCampusPower(campusPower: number): CardIdentity["rarity"] {
+  if (campusPower >= 96) {
+    return "Campus Myth";
+  }
+
+  if (campusPower >= 89) {
+    return "Legendary";
+  }
+
+  if (campusPower >= 80) {
+    return "Epic";
+  }
+
+  if (campusPower >= 70) {
+    return "Rare";
+  }
+
+  return "Common";
+}
+
+function normalizeGeneratedCard(input: CardRequest, generated: unknown): CardIdentity {
+  const parsed = aiCardContentSchema.parse(generated);
+  const selectedTraits = parsed.traits.map((trait) => trait.name);
+  const traitStats = Object.fromEntries(
+    parsed.traits.map((trait) => [trait.name, trait.score]),
+  );
+  const campusPower = parsed.campusPower;
+
+  return cardSchema.parse({
+    displayName: input.name,
+    cardTitle: parsed.cardTitle,
+    type: selectedTraits,
+    rarity: rarityFromCampusPower(campusPower),
+    stats: {
+      ...traitStats,
+      "Campus Power": campusPower,
+    },
+    specialAbility: parsed.specialAbility,
+    description: `Known for ${parsed.knownFor.replace(/^known for\s+/i, "").replace(/\.$/, "")}.`,
+    colorTheme: parsed.colorTheme,
+  });
 }
 
 export async function generateCard(input: CardRequest): Promise<CardGenerationResult> {
@@ -185,7 +272,7 @@ export async function generateCard(input: CardRequest): Promise<CardGenerationRe
     }
 
     const generated: unknown = JSON.parse(outputText);
-    const card = cardSchema.parse(generated);
+    const card = normalizeGeneratedCard(input, generated);
 
     return {
       card,

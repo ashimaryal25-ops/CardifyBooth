@@ -1,6 +1,6 @@
 "use client";
 
-import { ArrowLeft, BadgeCheck, ImageUp, ScanLine, Sparkles } from "lucide-react";
+import { ArrowLeft, ArrowRight, Camera, Landmark } from "lucide-react";
 import QRCode from "qrcode";
 import { useCallback, useMemo, useState } from "react";
 import { CardForm } from "@/components/CardForm";
@@ -14,22 +14,21 @@ import { generateCardIdentity } from "@/lib/generate-card";
 type Step = "choose" | "cardSetup" | "generating" | "reveal" | "collage";
 
 const sampleCard = createFallbackCard({
-  name: "Aryan",
+  name: "Ashim",
   theme: "gettysburg",
-  traits: ["Builder", "Creative", "Clutch"],
-  knownFor: "turning unfinished ideas into working demos before the deadline",
+  selfDescription: "I build quick prototypes and help my team finish under pressure.",
 });
 
 const samplePhoto =
   "data:image/svg+xml;charset=UTF-8," +
   encodeURIComponent(`
   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 600">
-    <rect width="800" height="600" fill="#26231f"/>
+    <rect width="800" height="600" fill="#222222"/>
     <circle cx="400" cy="210" r="92" fill="#d8b98d"/>
-    <path d="M240 540c25-130 97-205 160-205s135 75 160 205" fill="#185c54"/>
+    <path d="M240 540c25-130 97-205 160-205s135 75 160 205" fill="#043371"/>
     <rect x="0" y="455" width="800" height="145" fill="#3a312a"/>
-    <path d="M80 120h180l-36 160H44z" fill="#b2392b" opacity=".78"/>
-    <path d="M540 90h180l36 160H576z" fill="#f2c15f" opacity=".76"/>
+    <path d="M80 120h180l-36 160H44z" fill="#cc4e00" opacity=".78"/>
+    <path d="M540 90h180l36 160H576z" fill="#8fdbff" opacity=".76"/>
   </svg>`);
 
 export function BoothApp() {
@@ -38,6 +37,7 @@ export function BoothApp() {
   const [card, setCard] = useState<CardIdentity | null>(null);
   const [cardId, setCardId] = useState<string | null>(null);
   const [qrCode, setQrCode] = useState<string>("");
+  const [isSampleCardOpen, setIsSampleCardOpen] = useState(false);
 
   const progress = useMemo(() => {
     const steps: Step[] = ["cardSetup", "generating", "reveal"];
@@ -52,6 +52,7 @@ export function BoothApp() {
     setCard(null);
     setCardId(null);
     setQrCode("");
+    setIsSampleCardOpen(false);
   }, []);
 
   const resetToChooser = useCallback(() => {
@@ -60,6 +61,7 @@ export function BoothApp() {
     setCard(null);
     setCardId(null);
     setQrCode("");
+    setIsSampleCardOpen(false);
   }, []);
 
   const handleGenerate = useCallback(
@@ -68,15 +70,16 @@ export function BoothApp() {
         return;
       }
 
+      const startedAt = performance.now();
       setStep("generating");
       const generated = await generateCardIdentity(request);
       setCard(generated.card);
       setCardId(generated.cardId);
 
       const qrPayload = generated.cardId
-        ? `${window.location.origin}/cards/${generated.cardId}`
+        ? `${window.location.origin}/local-cards/${generated.cardId}`
         : [
-            "CardifyBooth Gettysburg Edition",
+            "CardifyBooth Gettysburg College Edition",
             generated.card.displayName,
             generated.card.cardTitle,
             generated.card.rarity,
@@ -86,10 +89,15 @@ export function BoothApp() {
         margin: 1,
         width: 180,
         color: {
-          dark: "#171512",
-          light: "#fffaf1",
+          dark: "#222222",
+          light: "#ffffff",
         },
       });
+
+      const elapsed = performance.now() - startedAt;
+      if (elapsed < 1200) {
+        await new Promise((resolve) => setTimeout(resolve, 1200 - elapsed));
+      }
 
       setQrCode(qr);
       setStep("reveal");
@@ -98,29 +106,18 @@ export function BoothApp() {
   );
 
   return (
-    <main className="min-h-screen px-4 py-5 text-[#171512] sm:px-6 lg:px-8">
-      <div className="mx-auto grid max-w-7xl gap-5">
-        <header className="flex flex-wrap items-center justify-between gap-4 rounded-[8px] border border-[#2a2925]/10 bg-[#fffaf1]/70 px-4 py-3 shadow-sm backdrop-blur">
+    <main className={`min-h-screen px-4 py-5 text-[var(--gc-black)] sm:px-6 lg:px-8 ${step === "choose" ? "choice-stage" : "bg-transparent"}`}>
+      <div className={`mx-auto grid max-w-6xl gap-4 ${step === "choose" ? "min-h-[calc(100vh-2.5rem)] content-center" : ""}`}>
+        <header className="flex flex-wrap items-center justify-between gap-4 rounded-[8px] border border-[#d7c9bb] bg-[#fffdf9] px-5 py-4 shadow-[0_2px_8px_rgba(34,34,34,0.06)]">
           <div>
-            <p className="font-mono text-xs font-black uppercase tracking-[0.24em] text-[#8a372c]">
-              CardifyBooth
-            </p>
-            <h1 className="text-2xl font-black tracking-normal text-[#171512]">
-              Gettysburg Edition
-            </h1>
+            <h1 className="text-xl font-black tracking-normal text-[var(--gc-black)]">CardifyBooth</h1>
+            <p className="text-sm font-semibold text-[var(--gc-gray)]">Gettysburg College photo card station</p>
           </div>
 
-          {progress ? (
-            <div className="flex items-center gap-2 text-sm font-bold text-[#5f574d]">
-              <span className="grid h-8 w-8 place-items-center rounded-full bg-[#185c54] text-white">
-                {progress}
-              </span>
-              <span>of 3</span>
+          {progress && (
+            <div className="text-sm font-bold text-[var(--gc-gray)]">
+              Step {progress} of 3
             </div>
-          ) : (
-            <span className="rounded-full bg-[#185c54]/10 px-3 py-1.5 text-sm font-black text-[#185c54]">
-              Choose mode
-            </span>
           )}
         </header>
 
@@ -135,7 +132,7 @@ export function BoothApp() {
 
               resetToChooser();
             }}
-            className="inline-flex w-fit items-center gap-2 rounded-[8px] border border-[#2a2925]/15 bg-white/65 px-3 py-2 text-sm font-bold text-[#2a2925] hover:bg-white"
+            className="inline-flex w-fit items-center gap-2 rounded-[6px] border border-[var(--gc-black)]/18 bg-[#ffffff] px-3 py-2 text-sm font-bold text-[var(--gc-black)] hover:bg-white"
           >
             <ArrowLeft size={16} />
             Back
@@ -143,120 +140,145 @@ export function BoothApp() {
         )}
 
         {step === "choose" && (
-          <section className="grid gap-7 py-6 lg:grid-cols-[1fr_1fr]">
-            <button
-              type="button"
-              onClick={() => setStep("cardSetup")}
-              className="group min-h-[360px] rounded-[8px] border border-[#2a2925]/10 bg-[#fffaf1]/75 p-6 text-left shadow-sm transition hover:-translate-y-1 hover:bg-[#fffaf1] hover:shadow-xl"
-            >
-              <div className="grid h-14 w-14 place-items-center rounded-[8px] bg-[#b2392b] text-white">
-                <ImageUp size={28} />
-              </div>
-              <p className="mt-8 font-mono text-sm font-black uppercase tracking-[0.22em] text-[#8a372c]">
-                Trading card mode
-              </p>
-              <h2 className="mt-3 text-4xl font-black tracking-normal text-[#171512] sm:text-5xl">
-                Card Booth
-              </h2>
-              <p className="mt-4 max-w-xl text-lg font-medium leading-8 text-[#5f574d]">
-                Upload a photo, enter traits, generate a Gettysburg trading-card identity,
-                render the card, then save the print-ready PNG.
-              </p>
-              <span className="mt-8 inline-flex rounded-[8px] bg-[#b2392b] px-5 py-3 font-black text-white transition group-hover:bg-[#982f24]">
-                Open card generator
-              </span>
-            </button>
+          <section className="grid gap-4 py-5">
+            <div className="grid gap-4 sm:grid-cols-2">
+              <button
+                type="button"
+                onClick={() => setStep("cardSetup")}
+                className="grid min-h-[285px] overflow-hidden rounded-[8px] border-2 border-[var(--gc-orange)] bg-white text-left shadow-[0_2px_8px_rgba(34,34,34,0.08)] transition-colors hover:bg-[#fff7f1] focus-visible:outline-[var(--gc-orange)]"
+              >
+                <span className="grid content-start gap-5 p-6">
+                  <span className="flex h-12 w-12 items-center justify-center rounded-[6px] border border-[var(--gc-orange)]/28 bg-[#fff1e7] text-[var(--gc-orange)]">
+                    <Camera size={30} strokeWidth={2.2} />
+                  </span>
+                  <span>
+                    <span className="block text-3xl font-black tracking-normal text-[var(--gc-black)]">
+                      Trading Card
+                    </span>
+                    <span className="mt-3 block max-w-md text-base font-semibold leading-7 text-[var(--gc-gray)]">
+                      Take a portrait and create a personalized card.
+                    </span>
+                  </span>
+                </span>
+                <span className="mt-auto flex items-center justify-between border-t border-[var(--gc-orange)]/30 bg-[var(--gc-orange)] px-6 py-4 text-base font-black text-white">
+                  Start card
+                  <ArrowRight size={19} />
+                </span>
+              </button>
 
-            <button
-              type="button"
-              onClick={() => setStep("collage")}
-              className="group min-h-[360px] rounded-[8px] border border-[#2a2925]/10 bg-[#fffaf1]/75 p-6 text-left shadow-sm transition hover:-translate-y-1 hover:bg-[#fffaf1] hover:shadow-xl"
-            >
-              <div className="grid h-14 w-14 place-items-center rounded-[8px] bg-[#185c54] text-white">
-                <BadgeCheck size={28} />
-              </div>
-              <p className="mt-8 font-mono text-sm font-black uppercase tracking-[0.22em] text-[#185c54]">
-                Collage side
-              </p>
-              <h2 className="mt-3 text-4xl font-black tracking-normal text-[#171512] sm:text-5xl">
-                Photo Collage
-              </h2>
-              <p className="mt-4 max-w-xl text-lg font-medium leading-8 text-[#5f574d]">
-                Placeholder for the other team&apos;s collage flow. This button proves
-                the app can route to both experiences from one kiosk entry point.
-              </p>
-              <span className="mt-8 inline-flex rounded-[8px] border border-[#185c54]/25 bg-[#185c54]/10 px-5 py-3 font-black text-[#185c54]">
-                Placeholder only
-              </span>
-            </button>
+              <button
+                type="button"
+                onClick={() => setStep("collage")}
+                className="grid min-h-[285px] overflow-hidden rounded-[8px] border-2 border-[var(--gc-blue)] bg-white text-left shadow-[0_2px_8px_rgba(34,34,34,0.08)] transition-colors hover:bg-[#f2f7fc] focus-visible:outline-[var(--gc-blue)]"
+              >
+                <span className="grid content-start gap-5 p-6">
+                  <span className="flex h-12 w-12 items-center justify-center rounded-[6px] border border-[var(--gc-blue)]/26 bg-[#eef6ff] text-[var(--gc-blue)]">
+                    <Landmark size={30} strokeWidth={2.2} />
+                  </span>
+                  <span>
+                    <span className="block text-3xl font-black tracking-normal text-[var(--gc-black)]">
+                      Photo Collage
+                    </span>
+                    <span className="mt-3 block max-w-md text-base font-semibold leading-7 text-[var(--gc-gray)]">
+                      Build a multi-photo keepsake print.
+                    </span>
+                  </span>
+                </span>
+                <span className="mt-auto flex items-center justify-between border-t border-[var(--gc-blue)]/30 bg-[var(--gc-blue)] px-6 py-4 text-base font-black text-white">
+                  Start collage
+                  <ArrowRight size={19} />
+                </span>
+              </button>
+            </div>
           </section>
         )}
 
         {step === "collage" && (
-          <section className="grid min-h-[60vh] place-items-center rounded-[8px] border border-[#2a2925]/10 bg-[#fffaf1]/75 p-8 text-center">
-            <div className="max-w-2xl">
-              <p className="font-mono text-sm font-black uppercase tracking-[0.22em] text-[#185c54]">
-                Photo Collage
-              </p>
-              <h2 className="mt-4 text-5xl font-black tracking-normal text-[#171512]">
-                Collage placeholder
-              </h2>
-              <p className="mt-4 text-lg font-medium leading-8 text-[#5f574d]">
-                This section intentionally does nothing yet. The card generator is the
-                active build area, and the collage team can plug their flow in here later.
+          <section className="grid gap-4">
+            <div className="rounded-[8px] border border-[var(--gc-black)]/14 bg-[#ffffff] p-4">
+              <h2 className="text-xl font-black tracking-normal text-[var(--gc-black)]">Photo Collage</h2>
+              <p className="mt-2 max-w-2xl text-sm leading-6 text-[var(--gc-gray)]">
+                This option is reserved for the multi-photo printout.
               </p>
             </div>
           </section>
         )}
 
         {step === "cardSetup" && (
-          <section className="grid gap-7 lg:grid-cols-[minmax(320px,560px)_1fr]">
-            <div className="grid gap-5">
+          <section className={photo ? "grid items-start gap-5 lg:grid-cols-[minmax(360px,1fr)_420px]" : "grid gap-5"}>
+            <div className="grid gap-5 rounded-[8px] border border-[#d7c9bb] bg-white p-5">
               <div>
-                <p className="font-mono text-sm font-black uppercase tracking-[0.24em] text-[#8a372c]">
-                  Card generator
+                <h2 className="text-2xl font-black tracking-normal text-[var(--gc-black)]">Take a photo</h2>
+                <p className="mt-1 text-sm font-semibold text-[var(--gc-gray)]">
+                  Capture the portrait, then fill out the card details.
                 </p>
-                <h2 className="mt-2 text-4xl font-black tracking-normal text-[#171512]">
-                  Upload photo, then fill the card details.
-                </h2>
               </div>
               <ImageUpload
                 photo={photo}
                 onUpload={setPhoto}
                 onChooseAnother={() => setPhoto(null)}
+                onViewSample={() => setIsSampleCardOpen(true)}
               />
             </div>
 
-            {photo ? (
-              <div className="rounded-[8px] border border-[#2a2925]/10 bg-[#fffaf1]/70 p-5 shadow-sm">
+            {photo && (
+              <div className="rounded-[8px] border border-[var(--gc-black)]/14 bg-[#ffffff] p-4">
                 <CardForm isGenerating={false} onSubmit={handleGenerate} />
               </div>
-            ) : (
-              <aside className="rounded-[8px] border border-[#2a2925]/10 bg-[#fffaf1]/70 p-5">
-                <ScanLine className="text-[#185c54]" size={28} />
-                <h2 className="mt-4 text-3xl font-black tracking-normal">Image first.</h2>
-                <p className="mt-3 text-base font-medium leading-7 text-[#5f574d]">
-                  Once the image is uploaded, the name, traits, and known-for form will
-                  appear on this same page.
-                </p>
-                <div className="mt-5">
-                  <CardPreview card={sampleCard} photo={samplePhoto} />
-                </div>
-              </aside>
             )}
           </section>
         )}
 
-        {step === "generating" && (
-          <section className="grid min-h-[60vh] place-items-center text-center">
-            <div className="max-w-lg">
-              <div className="mx-auto grid h-20 w-20 place-items-center rounded-full bg-[#185c54] text-white shadow-xl shadow-[#185c54]/20">
-                <Sparkles className="animate-pulse" size={34} />
+        {isSampleCardOpen && (
+          <div
+            className="fixed inset-0 z-50 grid place-items-center bg-[rgba(34,34,34,0.48)] p-4"
+            role="dialog"
+            aria-modal="true"
+            aria-label="Sample card"
+          >
+            <div className="max-h-[92vh] w-full max-w-md overflow-auto rounded-[8px] border border-[#d7c9bb] bg-white p-4 shadow-[0_8px_24px_rgba(34,34,34,0.18)]">
+              <div className="mb-4 flex items-center justify-between gap-4">
+                <h2 className="text-lg font-black text-[var(--gc-black)]">Sample card</h2>
+                <button
+                  type="button"
+                  onClick={() => setIsSampleCardOpen(false)}
+                  className="rounded-[6px] border border-[var(--gc-black)]/18 bg-white px-3 py-2 text-sm font-bold text-[var(--gc-black)] hover:bg-[var(--gc-alabaster)]"
+                >
+                  Close
+                </button>
               </div>
-              <h2 className="mt-5 text-4xl font-black tracking-normal">Building the card</h2>
-              <p className="mt-3 text-lg font-medium leading-8 text-[#5f574d]">
-                Validating the identity, assigning stats, and preparing the QR marker.
-              </p>
+              <div className="mx-auto max-w-[320px]">
+                <CardPreview card={sampleCard} photo={samplePhoto} />
+              </div>
+            </div>
+          </div>
+        )}
+
+        {step === "generating" && (
+          <section className="grid min-h-[55vh] place-items-center">
+            <div className="grid w-full max-w-md gap-5 rounded-[8px] border border-[var(--gc-black)]/14 bg-[#ffffff] p-5 shadow-[0_2px_8px_rgba(34,34,34,0.06)]">
+              <div>
+                <h2 className="text-2xl font-black tracking-normal">Making your card</h2>
+                <p className="mt-1 text-sm font-semibold leading-6 text-[var(--gc-gray)]">
+                  Hold tight. Your card is being prepared.
+                </p>
+              </div>
+
+              <div className="card-build-preview" aria-hidden="true">
+                <div className="card-build-topline" />
+                <div className="card-build-photo">
+                  <div className="card-build-scan" />
+                </div>
+                <div className="grid gap-2">
+                  <div className="card-build-bar w-[78%]" />
+                  <div className="card-build-bar w-[58%]" />
+                  <div className="card-build-bar w-[68%]" />
+                </div>
+              </div>
+
+              <div className="h-2 overflow-hidden rounded-full bg-[#ded7ce]">
+                <div className="card-build-progress h-full w-1/2 rounded-full bg-[var(--gc-orange)]" />
+              </div>
             </div>
           </section>
         )}

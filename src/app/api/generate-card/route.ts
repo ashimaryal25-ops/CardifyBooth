@@ -1,7 +1,6 @@
 import { NextResponse } from "next/server";
 import { cardRequestSchema } from "@/lib/card-schema";
 import { generateCard } from "@/lib/card-generation";
-import { saveCardGeneration } from "@/lib/card-records";
 
 export async function POST(request: Request) {
   const body: unknown = await request.json().catch(() => null);
@@ -12,31 +11,19 @@ export async function POST(request: Request) {
   }
 
   const result = await generateCard(parsed.data);
+  const cardId = crypto.randomUUID();
 
-  try {
-    const cardId = await saveCardGeneration({
-      request: parsed.data,
-      generation: result,
-    });
-
-    return NextResponse.json({
-      card: result.card,
-      cardId,
-    }, {
-      headers: {
-        "X-Card-Generation-Id": cardId,
-        "X-Card-Generation-Source": result.source,
-        "X-Card-Generation-Model": result.model,
-        "X-Card-Generation-Duration-Ms": String(result.durationMs),
-        "X-Card-Estimated-Input-Tokens": String(result.estimatedInputTokens),
-        "X-Card-Estimated-Output-Tokens": String(result.estimatedOutputTokens),
-      },
-    });
-  } catch (error) {
-    console.error(error);
-    return NextResponse.json(
-      { error: "Card generated, but saving to Supabase failed." },
-      { status: 500 },
-    );
-  }
+  return NextResponse.json({
+    card: result.card,
+    cardId,
+  }, {
+    headers: {
+      "X-Card-Generation-Id": cardId,
+      "X-Card-Generation-Source": result.source,
+      "X-Card-Generation-Model": result.model,
+      "X-Card-Generation-Duration-Ms": String(result.durationMs),
+      "X-Card-Estimated-Input-Tokens": String(result.estimatedInputTokens),
+      "X-Card-Estimated-Output-Tokens": String(result.estimatedOutputTokens),
+    },
+  });
 }
