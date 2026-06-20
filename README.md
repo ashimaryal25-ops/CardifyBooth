@@ -2,6 +2,25 @@
 
 CardifyBooth is a privacy-minded AI photo booth kiosk for creating Gettysburg College-themed collectible trading cards. The current build uses a camera-first booth flow, generates card traits from a short self-description, renders a print-ready PNG, and stores the final card locally for QR access and printing.
 
+
+## Demo Images
+
+<p align="center">
+  <img src="Screenshot 2026-06-20 134731.png" alt="CardifyBooth Demo" width="550">
+</p>
+
+<p align="center">
+  <img src="Screenshot 2026-06-20 134926.png" alt="CardifyBooth Demo" width="550">
+</p>
+
+<p align="center">
+  <img src="Screenshot 2026-06-20 135108.png" alt="CardifyBooth Demo" width="550">
+</p>
+
+<p align="center">
+  <img src="Screenshot 2026-06-20 133639.png" alt="CardifyBooth Demo" width="550">
+</p>
+
 ## Current Features
 
 - Kiosk entry screen with `Card Booth` and reserved `Photo Collage` mode
