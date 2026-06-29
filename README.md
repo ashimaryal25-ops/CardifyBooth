@@ -4,7 +4,8 @@ CardifyBooth is a privacy-minded photo booth kiosk for creating Gettysburg Colle
 
 ## Demo
 
-[![See current status/video of the physical booth](https://img.youtube.com/vi/zRU-7PctPQE/0.jpg)](https://youtu.be/zRU-7PctPQE)
+**Demo Video:**
+[![Watch the physical booth in action](https://img.youtube.com/vi/zRU-7PctPQE/0.jpg)](https://youtu.be/zRU-7PctPQE)
 
 <p align="center">
   <img src="docs/screenshots/03-card.png" alt="Generated CardifyBooth trading card" width="320">
