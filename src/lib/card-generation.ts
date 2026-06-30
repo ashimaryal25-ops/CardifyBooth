@@ -1,4 +1,9 @@
 import { z } from "zod";
+import {
+  cardTemplateIds,
+  getCardTemplatePromptCatalog,
+  resolveTemplateId,
+} from "@/lib/card-templates";
 import { cardSchema, raritySchema, type CardIdentity, type CardRequest } from "@/lib/card-schema";
 import { createFallbackCard } from "@/lib/fallback-card";
 import { gettysburgTheme } from "@/lib/themes";
@@ -46,11 +51,11 @@ const CARD_IDENTITY_JSON_SCHEMA = {
     campusPower: { type: "integer", minimum: 60, maximum: 99 },
     rarity: {
       type: "string",
-      enum: ["Common", "Rare", "Epic", "Legendary", "Campus Myth"],
+      enum: gettysburgTheme.rarities,
     },
     knownFor: { type: "string" },
     specialAbility: { type: "string" },
-    colorTheme: { type: "string" },
+    colorTheme: { type: "string", enum: cardTemplateIds },
   },
 } as const;
 
@@ -64,7 +69,7 @@ const aiCardContentSchema = z.object({
   rarity: raritySchema,
   knownFor: z.string().min(8).max(140),
   specialAbility: z.string().min(3).max(34),
-  colorTheme: z.string().min(3).max(24),
+  colorTheme: z.enum(cardTemplateIds),
 });
 
 function estimateTokens(text: string) {
@@ -80,6 +85,8 @@ function buildSystemPrompt() {
     "Avoid insults, sensitive personal attributes, stereotypes, and private information.",
     `Allowed traits: ${gettysburgTheme.traits.join(", ")}.`,
     `Allowed rarities: ${gettysburgTheme.rarities.join(", ")}.`,
+    "Choose colorTheme from the allowed card template ids only. The chosen template should match the person's self-description, selected traits, and overall card energy.",
+    "The 'gettysburg-gold' template is the rarest, most powerful card. Only choose it when the card is Legendary or Campus Myth and every trait plus Campus Power is roughly 90 or higher (someone maxing out campus contribution). For all other people, choose a casual themed template that fits them, never gettysburg-gold.",
     "Create an original Gettysburg College-themed card title. It may reference campus life, Bullet pride, first-year energy, clubs, making/building, classes, or student leadership, but do not copy a fixed title list.",
     "Pick exactly three traits that best match the user's self-description.",
     "Return traits as an array of exactly three objects with name and score.",
@@ -101,12 +108,15 @@ function buildUserPrompt(input: CardRequest) {
       selfDescription: input.selfDescription,
       theme: input.theme,
     },
+    cardTemplateOptions: getCardTemplatePromptCatalog(),
     outputRules: {
       cardTitle: "Make it punchy, specific, and under 42 characters.",
       traits: "Exactly three objects from the allowed trait list, each with a 60-99 score.",
       campusPower: "Integer from 60 to 99.",
+      rarity: "Use the rarity rubric from the system instructions.",
       knownFor: "One concise phrase based on the self-description, without 'Known for'.",
       specialAbility: "Short ability name, not a sentence.",
+      colorTheme: "One exact id from cardTemplateOptions.",
     },
   });
 }
@@ -176,26 +186,6 @@ function createFallbackResult(
   };
 }
 
-function rarityFromCampusPower(campusPower: number): CardIdentity["rarity"] {
-  if (campusPower >= 96) {
-    return "Campus Myth";
-  }
-
-  if (campusPower >= 89) {
-    return "Legendary";
-  }
-
-  if (campusPower >= 80) {
-    return "Epic";
-  }
-
-  if (campusPower >= 70) {
-    return "Rare";
-  }
-
-  return "Common";
-}
-
 function normalizeGeneratedCard(input: CardRequest, generated: unknown): CardIdentity {
   const parsed = aiCardContentSchema.parse(generated);
   const selectedTraits = parsed.traits.map((trait) => trait.name);
@@ -208,14 +198,14 @@ function normalizeGeneratedCard(input: CardRequest, generated: unknown): CardIde
     displayName: input.name,
     cardTitle: parsed.cardTitle,
     type: selectedTraits,
-    rarity: rarityFromCampusPower(campusPower),
+    rarity: parsed.rarity,
     stats: {
       ...traitStats,
       "Campus Power": campusPower,
     },
     specialAbility: parsed.specialAbility,
     description: `Known for ${parsed.knownFor.replace(/^known for\s+/i, "").replace(/\.$/, "")}.`,
-    colorTheme: parsed.colorTheme,
+    colorTheme: resolveTemplateId(parsed.rarity, parsed.colorTheme, input.selfDescription),
   });
 }
 
@@ -225,7 +215,12 @@ export async function generateCard(input: CardRequest): Promise<CardGenerationRe
   const apiKey = process.env.OPENAI_API_KEY;
 
   if (!apiKey) {
-    return createFallbackResult(input, startedAt, "local-fallback", "OPENAI_API_KEY is not configured.");
+    return createFallbackResult(
+      input,
+      startedAt,
+      "local-fallback",
+      "OPENAI_API_KEY is not configured.",
+    );
   }
 
   const systemPrompt = buildSystemPrompt();
@@ -283,6 +278,11 @@ export async function generateCard(input: CardRequest): Promise<CardGenerationRe
       estimatedOutputTokens: estimateTokens(outputText),
     };
   } catch (error) {
-    return createFallbackResult(input, startedAt, model, getErrorMessage(error));
+    return createFallbackResult(
+      input,
+      startedAt,
+      "local-fallback",
+      getErrorMessage(error),
+    );
   }
 }

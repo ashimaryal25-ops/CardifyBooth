@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { cardTemplateIds } from "@/lib/card-templates";
 
 export const raritySchema = z.enum([
   "Common",
@@ -23,7 +24,7 @@ export const cardSchema = z.object({
     }),
   specialAbility: z.string().min(3).max(34),
   description: z.string().min(12).max(150),
-  colorTheme: z.string().min(3).max(24),
+  colorTheme: z.enum(cardTemplateIds),
 });
 
 export const cardRequestSchema = z.object({

@@ -1,4 +1,5 @@
 import { cardSchema, type CardIdentity, type CardRequest } from "@/lib/card-schema";
+import { chooseFallbackTemplateId, resolveTemplateId } from "@/lib/card-templates";
 import { gettysburgTheme } from "@/lib/themes";
 
 const titles = [
@@ -86,7 +87,11 @@ export function createFallbackCard(input: CardRequest): CardIdentity {
     description: cleanedDescription
       ? `Known for ${cleanedDescription}.`
       : `Known for turning ${primaryTrait.toLowerCase()} energy into campus-ready results.`,
-    colorTheme: "gettysburg-college",
+    colorTheme: resolveTemplateId(
+      rarity,
+      chooseFallbackTemplateId(input.selfDescription),
+      input.selfDescription,
+    ),
   };
 
   return cardSchema.parse(card);
